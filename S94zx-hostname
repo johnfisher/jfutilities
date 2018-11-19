@@ -1,0 +1,45 @@
+#!/bin/sh
+
+mknod /dev/ipmi0 c 252 0 2> /dev/null
+
+mkdir -p /var/lib/oa-vm
+
+# identify board
+
+BOARDID=`ipmitool raw 6 1 | cut -d ' ' -f 12`
+
+case $BOARDID in
+        "4d" )
+                BOARD=9210 ;;
+        "4e" )
+                BOARD=9240 ;;
+        "50" )
+                BOARD=8100 ;;
+        "51" )
+                BOARD=2040 ;;
+        "54" )
+		# only the net board will have bcmd
+		if [ -x /usr/sbin/bcmd ]; then
+	                BOARD=B1net 
+		else
+			BOARD=B1compute 
+		fi;;
+        "55" )
+                BOARD=9241 ;;
+esac
+
+echo $BOARD > /var/lib/oa-vm/board
+
+# check if we have an unitialized hostname
+if [ `cat /etc/hostname` != "oa4" ]; then
+	exit
+fi
+
+HOSTNAME=oa4-hv-$BOARD
+
+echo $HOSTNAME
+echo $HOSTNAME > /etc/hostname
+hostname $HOSTNAME
+
+echo "127.0.0.1	" $HOSTNAME >> /etc/hosts
+

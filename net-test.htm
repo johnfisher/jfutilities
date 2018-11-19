@@ -1,0 +1,107 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>Znyx network ping test</title>
+		
+		
+		<!-- 1. Add these JavaScript inclusions in the head of your page -->
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+		<script type="text/javascript" src="http://code.highcharts.com/highcharts.js"></script>
+		
+		
+		<!-- 2. Add the JavaScript to initialize the chart on document ready -->
+		<script type="text/javascript">
+		$(document).ready(function() {
+			
+
+			var options = {
+				chart: {
+					renderTo: 'container',
+					type: 'line'
+				},
+				title: {
+					text: 'Ping Duration Over Time '
+				},
+				xAxis: {
+					categories: []
+				},
+				yAxis: {
+					title: {
+						text: 'ms'
+					}
+				},
+				series: []
+			};
+			
+			/*
+			 Load the data from the CSV file. This is a sample file:
+			Categories,8:31:30,8:31:51,8:32:11,8:32:31,8:32:51,8:33:11,8:33:32,8:33:52,8:34:13,8:34:33
+			google.com,2002,2002,2003,2002,2002,2002,2003,2002,2003,2003
+			znyx.com,2002,2002,2003,2003,2002,2003,2003,2002,2002,2001
+			10.2.0.2,1999,1998,1999,1998,1999,1999,2000,1999,2000,1999
+			8.8.8.8,2002,2003,2002,2003,2002,2002,2003,2000,2002,2002
+			10.1.1.4,2001,2003,2003,2002,2002,2003,2002,2000,2002,2003
+
+				
+			 */ 
+			$.get('net-test.csv', function(data) {
+				// Split the lines
+				var lines = data.split('\n');
+				$.each(lines, function(lineNo, line) {
+					var items = line.split(',');
+					
+					// header line containes categories
+					if (lineNo == 0) {
+						$.each(items, function(itemNo, item) {
+							if (itemNo > 0) options.xAxis.categories.push(item);
+						});
+					}
+					
+					// the rest of the lines contain data with their name in the first position
+					else {
+						var series = { 
+							data: []
+						};
+						$.each(items, function(itemNo, item) {
+							if (itemNo == 0) {
+								series.name = item;
+							} else {
+								series.data.push(parseFloat(item));
+							}
+						});
+						
+						options.series.push(series);
+
+					}
+					
+				});
+				
+				var chart = new Highcharts.Chart(options);
+			});
+			
+			
+		});
+		</script>
+		
+	</head>
+	<body>
+		<h1> Net-Test </h1>
+<br>
+<h2> Graphing ping duration to capture temporary net slow-down. </h2>
+<br>
+<em>Refresh to get current data.</em>
+<br>
+<li>Note: actual ping durations are 100 ms less. Actual timestamps are slightly different due to recording only one from each loop.</li>
+<br>
+The chart gets a series of baseline measurements ( ping -c 1 ), and then stops recording until (any) measurements change more than a set amount, roughly 40%. This enables long runs with very little useless data, and still allows for a short loop interval to get fine-grained data when something bad is happening to the net.
+<hr>
+
+		<!-- 3. Add the container -->
+		<div id="container" style="width: 200%; height: 600px; margin: 0 auto"></div>
+		<a href="net-test.csv"> CSV data file for this chart.</a>
+<br>
+		<a href="net-test.log"> Log file for this test.</a>
+				
+	</body>
+</html>

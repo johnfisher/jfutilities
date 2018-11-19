@@ -1,0 +1,14 @@
+#!/bin/sh
+
+BOARD=`cat /var/lib/oa-vm/board`
+if [ $BOARD -eq "9241" ] && [ ! -f /lib/modules/`uname -r`/updates/dkms/i40ef.ko ]; then
+	dpkg-reconfigure i40evf-dkms
+	rmmod virtio_net
+	modprobe i40evf
+	modprobe virtio_net
+elif [ ! -f /lib/modules/`uname -r`/updates/dkms/ixgbevf.ko ]; then
+	dpkg-reconfigure ixgbevf-dkms
+	rmmod virtio_net
+	modprobe ixgbevf
+	modprobe virtio_net
+fi

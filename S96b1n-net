@@ -1,0 +1,42 @@
+#!/bin/sh
+
+if [ ! -f /lib/modules/`uname -r`/updates/dkms/igb.ko ]; then
+        dpkg-reconfigure igb-dkms
+        modprobe igb
+fi
+
+RAWMAC=`ipmitool -A none raw 0x30 0x26 2> /dev/null`
+if [ $? -ne 0 ]; then
+        exit
+fi
+
+MAC=`echo $RAWMAC | cut  -d ' ' -f 1-5 --output-delimiter=":"`:0
+
+grep $MAC /etc/udev/rules.d/71-b1n-net.rules > /dev/null 2> /dev/null 
+
+if [ $? -ne 0 ]; then
+        rm /etc/udev/rules.d/70* 2> /dev/null
+
+        echo "# ZNYX B1network OA port assignments" > /etc/udev/rules.d/71-b1n-net.rules
+
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"0\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth0\"" >> /etc/udev/rules.d/71-b1n-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"1\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth1\"" >> /etc/udev/rules.d/71-b1n-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"2\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth2\"" >> /etc/udev/rules.d/71-b1n-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"3\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth3\"" >> /etc/udev/rules.d/71-b1n-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"4\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth4\"" >> /etc/udev/rules.d/71-b1n-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"5\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth5\"" >> /etc/udev/rules.d/71-b1n-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"6\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth6\"" >> /etc/udev/rules.d/71-b1n-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"7\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth7\"" >> /etc/udev/rules.d/71-b1n-net.rules
+
+        rmmod igb
+        modprobe igb
+        ifdown br0
+        ifup br0
+
+fi
+
+exit
+
+
+
+

@@ -1,0 +1,63 @@
+#!/bin/sh
+
+mknod /dev/ipmi0 c 252 0 2> /dev/null 
+
+# identify board
+
+BOARDID=`ipmitool raw 6 1 | cut -d ' ' -f 12`
+
+case $BOARDID in
+	"4d" ) 
+		BOARD=9210 ;;
+	"4e" ) 
+		BOARD=9240 ;;
+	"50" ) 
+		BOARD=8100 ;;
+	"54" ) 
+		BOARD=B1N ;;
+	"55" ) 
+		BOARD=9241 ;;
+esac
+
+ipmitool -I open raw 0x2e 0x16 0x0a 0x40 0x00 0x00 0x05 > /dev/null
+
+if [ $BOARD != "B1N" ]; then
+	SLOT=0x`ipmitool raw 0x30 0x24 | cut -f 2 -d ' '`
+else
+	SLOT=0
+fi
+
+PRODSER=`ipmitool fru | grep -m 1 "Product Serial"`
+BDPART=`ipmitool fru | grep -m 1 "Board Part Number"`
+PRODPART=`ipmitool fru | grep -m 1 "Product Part Number"`
+
+IPMCVER=`ipmitool hpm check 2> /dev/null | grep -m 1 IPMC`
+FRUINFO=`ipmitool hpm check 2> /dev/null | grep -m 1 FRU`
+FPGAVER=`ipmitool hpm check 2> /dev/null | grep -m 1 FPGA`
+CPLDVER=`ipmitool hpm check 2> /dev/null | grep -m 1 CPLD`
+UEFIVER=`ipmitool hpm check 2> /dev/null | grep -m 1 UEFI`
+
+mkdir -p /var/lib/oa-vm
+
+echo SLOT=\"$SLOT\" > /var/lib/oa-vm/info
+echo PRODSER=\"$PRODSER\" >> /var/lib/oa-vm/info
+echo BDPART=\"$BDPART\" >> /var/lib/oa-vm/info
+echo PRODPART=\"$PRODPART\" >> /var/lib/oa-vm/info
+echo BOARD=$BOARD >> /var/lib/oa-vm/info
+
+echo IPMCVER=\"$IPMCVER\" >> /var/lib/oa-vm/info
+echo FRUINFO=\"$FRUINFO\" >> /var/lib/oa-vm/info
+echo FPGAVER=\"$FPGAVER\" >> /var/lib/oa-vm/info
+echo CPLDVER=\"$CPLDVER\" >> /var/lib/oa-vm/info
+echo UEFIVER=\"$UEFIVER\" >> /var/lib/oa-vm/info
+
+rm -f /var/lib/oa-vm/motd
+
+if [ $BOARD != "B1N" ]; then
+	printf "\n %s %.2d" " Board currently in ATCA slot" $SLOT > /var/lib/oa-vm/motd
+fi
+
+printf "\n %s" "$BDPART" >> /var/lib/oa-vm/motd
+printf "\n %s" "$PRODPART" >> /var/lib/oa-vm/motd
+printf "\n %s\n\n" "$PRODSER" >> /var/lib/oa-vm/motd
+

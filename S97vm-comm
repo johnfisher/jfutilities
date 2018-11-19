@@ -1,0 +1,10 @@
+#!/bin/sh
+
+modprobe -i vhost_net
+modprobe -i virtio_net
+lspci -n 2> /dev/null | grep 1af4:1009 > /dev/null 2> /dev/null
+
+mkdir -p /var/lib/oa-vm
+if [ $? -eq 0 ]; then
+        mount -t 9p -o trans=virtio,version=9p2000.L oa-vm /var/lib/oa-vm 2> /dev/null
+fi

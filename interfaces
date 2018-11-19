@@ -1,0 +1,192 @@
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+#######################################################################
+#  ZNYX Networks OA4 defaults for Hypervisor:
+#  For use with ZX9200 series SBCs running OA4 on ZX2000 series chassis.
+#  Modify to suit your needs.
+#  The VLAN1 network is in place on the ATCA Base for maintenance use.
+#  The VLAN250 network is required for the (opt) OAControl application.
+#  Since the VLAN250 network is specifically set up to be invisible
+#    outside the ZX2000 chassis, it should be harmless.
+#
+#  Comments below are specific to the ZX2000 series chassis.
+#######################################################################
+
+#  10G ATCA Fabric Channel 2  
+auto eth0
+iface eth0 inet  static
+address 0.0.0.0
+
+#################################################
+#  10G on (opt) RTM  
+auto eth1
+iface eth1 inet  static
+address 0.0.0.0
+
+#################################################
+#  10G ATCA Fabric Channel 1  
+auto eth2
+iface eth2 inet  static
+address 0.0.0.0
+
+#################################################
+#  10G on (opt) RTM  
+auto eth3
+iface eth3 inet  static
+address 0.0.0.0
+
+#################################################
+# Face panel CPU1 RJ45
+auto eth4
+iface eth4 inet  manual
+
+
+#################################################
+# br4 bridge to eth4
+auto br4
+iface br4 inet  manual 
+up dhclient -1
+bridge_ports eth4
+bridge_stp off
+bridge_fd 0
+bridge_maxwait 0
+
+################################################# 
+# Face panel CPU2 RJ45
+auto eth5
+iface eth5 inet  manual
+
+#################################################
+# br5 bridge to eth5
+auto br5
+iface br5 inet  manual 
+up dhclient -1
+bridge_ports eth5
+bridge_stp off
+bridge_fd 0
+bridge_maxwait 0
+
+#################################################
+auto eth6
+iface eth6 inet  manual
+ 
+#################################################
+# br6 bridge GigE to (opt) RTM
+auto br6
+iface br6 inet  static 
+address 0.0.0.0
+bridge_ports eth6
+bridge_stp off
+bridge_fd 0
+bridge_maxwait 0
+
+#################################################
+auto eth7
+iface eth7 inet  manual
+
+#################################################
+# br7 bridge GigE to (opt) RTM
+auto br7
+iface br7 inet  static 
+address 0.0.0.0
+bridge_ports eth7
+bridge_stp off
+bridge_fd 0
+bridge_maxwait 0
+
+#################################################
+auto eth8
+iface eth8 inet  manual
+ 
+#################################################
+# br8 bridge GigE to (opt) RTM
+auto br8
+iface br8 inet  static 
+address 0.0.0.0
+bridge_ports eth8
+bridge_stp off
+bridge_fd 0
+bridge_maxwait 0
+
+#################################################
+auto eth9
+iface eth9 inet  manual
+
+#################################################
+# br9 bridge GigE to (opt) RTM
+auto br9
+iface br9 inet  static 
+address 0.0.0.0
+bridge_ports eth9
+bridge_stp off
+bridge_fd 0
+bridge_maxwait 0
+
+################################################# 
+# the ATCA Base channel 1 at 1G
+# connects to the switch in slot 7
+auto eth10
+iface eth10 inet manual
+
+
+#################################################
+# br10 bridge to Base channel 1
+# will change when bonding driver is added!
+# tries dhcp or falls back to static based on slot
+auto br10
+iface br10 inet  manual 
+up /etc/network/znyx/if-up-scripts/br10.sh
+bridge_ports eth10
+bridge_stp off
+bridge_fd 0
+bridge_maxwait 0
+
+################################################# 
+# the ATCA Base channel 2 at 1G
+# connects to the switch in slot 8
+# tries dhcp or falls back to static based on slot
+auto eth11
+iface eth11 inet manual
+
+
+#################################################
+# br11 bridge to Base channel 2
+# 
+# 
+auto br11
+iface br11 inet manual
+up /etc/network/znyx/if-up-scripts/br11.sh
+bridge_ports eth11
+bridge_stp off
+bridge_fd 0
+bridge_maxwait 0 0
+
+#################################################
+# VLAN250 - tagged
+# default OAControl management network
+# IP addresses are slot-specific
+# This network is required for OAControl
+# It is not intended for use outside the chassis
+auto eth11.250
+iface eth11.250 inet manual
+pre-up /etc/network/if-pre-up.d/vlan
+up /etc/network/znyx/if-up-scripts/eth11.250.sh
+post-down  /etc/network/if-post-down.d/vlan
+
+#################################################
+# br250 bridge to OAC VLAN250 network
+auto br250
+iface br250 inet  manual 
+up /etc/network/znyx/if-up-scripts/br250.sh
+bridge_ports eth11.250
+bridge_stp off
+bridge_fd 0
+bridge_maxwait 0
+
+
+

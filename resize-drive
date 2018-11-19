@@ -1,0 +1,146 @@
+#!/bin/bash
+
+### START UUID swap ##################
+
+echo ""
+echo "Starting uuid and mount checks..."
+
+UUID_PATTERN='[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}'
+TMPMNT='/tmpmnt'
+CURDIR=`pwd`
+ cd /
+ if [ ! -d $TMPMNT ] ; then
+        mkdir $TMPMNT
+ fi
+
+if [[ `mount` =~ "$1"1 ]] ; then
+    echo "$1 is already mounted."
+    echo "exiting..."
+    exit 1
+fi
+cd $CURDIR
+
+
+# check for uuid
+# uuid > /dev/null || echo "No uuid utility, exiting..." ; exit 1
+if [ `uuid` ] ; then
+    echo "uuid check complete"
+else
+    echo "No uuid utility, exiting..."
+    exit 1
+fi
+
+
+# in case of fresh SSD, try to add partition 1
+partprobe "$1" &>/dev/null
+
+
+#check for partition 1
+if [ `fdisk -s "$1"1  `  ] ; then
+    echo "partition1 check complete"
+else
+    echo "No partition 1 , exiting..."
+    exit 1
+fi
+
+
+mount "$1"1 $TMPMNT
+
+if [  `mountpoint -q "$TMPMNT"`  ] ; then
+    echo "Bad mount of "$1", exiting..."
+    exit 1
+else
+    echo "mountpoint check complete"
+fi
+
+
+
+cd $TMPMNT/boot/grub
+
+GRUBCONF='./grub.cfg'
+BKGRUBCONF='./grub.cfg.bk'
+
+# backup conf file
+cp $GRUBCONF $BKGRUBCONF
+
+OLDUUID=`egrep -o -m 1 $UUID_PATTERN  $GRUBCONF`
+NEWUUID=`uuid`
+
+# testing to see if there is a UUID in the file that isn't olduuid
+# this would indicate some sort of unexpected complexity that
+# would make a broken grub.cfg when we substitute.
+while read  line ; do
+        if [[ $line =~ $UUID_PATTERN  ]] ; then
+                if [[ ! $line =~ "$OLDUUID" ]] ; then
+                        echo ""
+                        echo " ERROR! May be two UUIDs in $GRUBCONF"
+                        echo " Refusing to change $GRUBCONF!"
+                        echo " exiting....."
+                        exit 1
+                fi
+        fi
+done < $GRUBCONF
+
+# replace old with new uuids
+sed -i " s/$OLDUUID/$NEWUUID/g " $GRUBCONF
+
+# test to see if we really replaced them all
+# returns 0 for no match
+# if 0 then clean up
+TEST=`grep -c $OLDUUID $GRUBCONF`
+if [[ $TEST > 0 ]] ; then
+        echo ""
+        echo " ERROR! incomplete edit of $GRUBCONF ."
+        echo " Found old UUID still present."
+        echo " Reverting file to original...."
+        echo " Abort resize!"
+        cp $BKGRUBCONF $GRUBCONF
+        rm $BKGRUBCONF
+        exit 1
+fi
+rm $BKGRUBCONF
+cd $CURDIR
+umount "$1"1
+
+
+# change UUID to avoid collisions in kernel
+tune2fs "$1"1 -U $NEWUUID &> /dev/null
+
+echo "tune2fs uuid change done"
+
+# Grep for newuuid in line with $1
+IDTEST=`blkid | grep  "$ID" | grep "$NEWUUID"`
+
+if  [[ ! $IDTEST ]] ; then
+        echo ""
+        echo "ERROR! UUID not updated correctly"
+        echo " use blkid to check."
+        echo " exiting....."
+        exit 1
+fi
+
+echo ""
+echo " Finished uuid and mount checks..."
+
+#### END UUID swap ########
+
+# proceed with resize
+echo ""
+echo "start resize"
+
+parted $1 rm 1
+parted $1 mkpart primary 0% 100%
+parted $1 set 1 boot on
+e2fsck -f "$1"1
+resize2fs "$1"1
+
+echo ""
+echo " Testing resize...."
+
+mount "$1"1 "$TMPMNT"
+df -h | grep "$1"
+umount "$1"1
+echo ""
+echo "End...."
+echo ""
+exit 

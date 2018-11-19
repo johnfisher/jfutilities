@@ -1,0 +1,54 @@
+#! /bin/bash
+# /etc/init.d/oa-build-daemon
+# requires oa-build-daemon.sh too
+#
+#######################################
+## place the script in init.d
+## run: update-rc.d filename defaults
+## to get it to start on boot
+#######################################
+# uses pid name from daemon invocation
+pid_file=/var/run/buildaemon.pid
+sub_pid_file=/var/run/oa-build.pid
+
+# start_oa-build-daemon(){
+# 	# daemon -f /opt/oa-build-daemon.sh > /dev/null);
+# 	# > /dev/null 2>&1
+# 	# watch /opt/oa-build-daemon.sh > /dev/null 2>&1;
+# 
+# 	/zbin/oa-build-daemon.sh  & ;
+# 	echo $! > $pid_file ;
+# 	exit 0;
+# }
+
+set -e
+
+case "$1" in
+  start)
+    if [ -f $pid_file ]; then
+    	echo "oa-build-daemon already running."
+    else
+    	echo "Starting oa-build-daemon."
+    	daemon -r -n buildaemon /zbin/oa-build-daemon.sh
+		echo $! > $pid_file 
+
+    fi;
+    exit 1;
+    ;;
+  stop)
+    echo "Stopping oa-build-daemon."
+    if [ -f $pid_file ]; then
+   		kill -9 $(cat $pid_file);
+   		rm -f $pid_file;
+   		kill -9 $(cat $sub_pid_file);
+   		rm -f $sub_pid_file;
+   	fi;
+		exit 0;
+    ;;
+  *)
+    echo "Usage: /etc/init.d/oa-build-daemon {start|stop}"
+    exit 1;
+    ;;
+esac
+
+exit 0;

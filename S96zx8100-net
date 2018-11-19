@@ -1,0 +1,40 @@
+#!/bin/sh
+
+if [ ! -f /lib/modules/`uname -r`/updates/dkms/igb.ko ]; then
+        dpkg-reconfigure igb-dkms
+        modprobe igb
+fi
+
+MAC=`ipmitool -I open lan print | grep "MAC Addre" | cut -c 27-41`
+
+if [ -z $MAC ]; then
+#        echo "fail"
+        exit
+fi
+
+sed -e "s/MAC/$MAC/g" -e "s/FABBUS/0x`lspci -n | grep b846 | cut -b 1-2`/g" < /etc/network/znyx/8100fab.xml.premac > /etc/network/znyx/8100fab.xml
+sed -e "s/MAC/$MAC/g" -e "s/BASEBUS/0x`lspci -n | grep b142 | cut -b 1-2`/g" < /etc/network/znyx/8100base.xml.premac > /etc/network/znyx/8100base.xml
+
+grep $MAC /etc/udev/rules.d/71-zx8100-net.rules > /dev/null 2> /dev/null
+
+if [ $? -ne 0 ]; then
+	rm -f /etc/udev/rules.d/70*
+
+        echo "# ZNYX ZX8100 OA port assignments" > /etc/udev/rules.d/71-zx8100-net.rules
+
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"00\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth0\"" >> /etc/udev/rules.d/71-zx8100-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"01\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth1\"" >> /etc/udev/rules.d/71-zx8100-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"02\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth2\"" >> /etc/udev/rules.d/71-zx8100-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"03\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth3\"" >> /etc/udev/rules.d/71-zx8100-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"08\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth4\"" >> /etc/udev/rules.d/71-zx8100-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"09\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth5\"" >> /etc/udev/rules.d/71-zx8100-net.rules
+
+	rmmod igb
+	modprobe igb
+    ifdown br0
+    ifup br0
+fi
+
+virsh net-destroy default > /dev/null 2> /dev/null
+virsh net-create /etc/libvirt/qemu/networks/virbr0.xml
+

@@ -1,0 +1,70 @@
+#!/bin/sh
+
+dmidecode | grep "Product Name: ZNYX Network/Compute Appliance-Compute" > /dev/null 2> /dev/null
+if [ $? -ne 0 ]; then
+	exit
+fi
+
+# temp fix, board info goes here
+mkdir -p /var/lib/oa-vm
+echo "" > /var/lib/oa-vm/motd
+echo "B1compute" > /var/lib/oa-vm/board
+
+if [ ! -f /lib/modules/`uname -r`/updates/dkms/ixgbe.ko ]; then
+        dpkg-reconfigure ixgbe-dkms
+        modprobe ixgbe
+fi
+
+if [ ! -f /lib/modules/`uname -r`/updates/dkms/igb.ko ]; then
+        dpkg-reconfigure igb-dkms
+        modprobe igb
+fi
+
+
+for i in `seq 0 15`; do
+        DEVID=`cat /sys/class/net/eth$i/device/device`
+        VENDID=`cat /sys/class/net/eth$i/device/vendor`
+        if [ $VENDID = "0x8086" ] && [ $DEVID = "0x1523" ]; then
+                MACADDR=`cat /sys/class/net/eth$i/address`
+                break
+        fi
+done
+
+MAC=`echo $MACADDR| cut -c 1-16`
+
+if [ -z $MAC ]; then
+#        echo "fail"
+        exit
+fi
+
+grep $MAC /etc/udev/rules.d/71-b1c-net.rules > /dev/null 2> /dev/null
+
+if [ $? -ne 0 ]; then
+	rm -f /etc/udev/rules.d/7*
+
+        echo "# ZNYX B1compute OA port assignments" > /etc/udev/rules.d/71-b1c-net.rules
+
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"0\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth0\"" >> /etc/udev/rules.d/71-b1c-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"1\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth1\"" >> /etc/udev/rules.d/71-b1c-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"2\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth2\"" >> /etc/udev/rules.d/71-b1c-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"3\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth3\"" >> /etc/udev/rules.d/71-b1c-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"4\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth4\"" >> /etc/udev/rules.d/71-b1c-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"5\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth5\"" >> /etc/udev/rules.d/71-b1c-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"6\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth6\"" >> /etc/udev/rules.d/71-b1c-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"7\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth7\"" >> /etc/udev/rules.d/71-b1c-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"8\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth8\"" >> /etc/udev/rules.d/71-b1c-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"9\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth9\"" >> /etc/udev/rules.d/71-b1c-net.rules
+
+	rmmod igb
+	rmmod ixgbe
+	modprobe igb
+	modprobe ixgbe
+    ifdown br0
+    ifup br0
+
+fi
+
+virsh net-destroy default > /dev/null 2> /dev/null
+virsh net-create /etc/libvirt/qemu/networks/virbr0.xml
+
+

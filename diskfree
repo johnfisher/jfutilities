@@ -1,0 +1,275 @@
+#!/bin/bash
+
+# diskfree - 2.0.8
+
+VERSION="diskfree 2.0.8 - (c) Douglas Hunley, 2000"
+
+unset DIRS
+HOSTNAME=`hostname`
+
+# Check out our command line arguments
+while getopts ":pvrd:m:l:e:" opt; do
+	case $opt in
+		p)
+			# We'll do full dir. tree reporting instead of
+			# top-level summarizing
+			PARANOID=yes
+			;;
+		m)
+			# Send the report to someone other than root
+			MAILTO=$OPTARG
+			;;
+		d)
+			# Report on an arbitrary set of directories.
+			# This is more "paranoid" than the default,
+			# but less "paranoid" than "-p".
+			unset DONE
+			if [ "${OPTARG:0:1}" = "-" ]; then
+				true
+			else
+				DIRS=$OPTARG
+			fi
+			# The $OPTARG variable only gives us the first
+			# argument to -d. However, all the arguments
+			# up to the next argument starting with "-" should
+			# be considered an argument to -d.
+			while [ -z "$DONE" ]; do
+				if [ "${!OPTIND:0:1}" = "-" ] || [ -z "${!OPTIND}" ]; then 
+					DONE=yes;
+				else
+					DIRS="$DIRS ${!OPTIND}" 
+					OPTIND=$((OPTIND+1))
+				fi
+			done
+			unset DONE 
+			;;
+		l)
+			# Write out temporary and output files here
+			OUTPUT=$OPTARG
+			;;
+		e)
+			# what special extension on our output file
+			EXTENSION=".${OPTARG}"
+			;;
+		r)
+			# report even when nothing changed?
+			REPORT_REGARDLESS=yes
+			;;
+		v)
+			# Spew our version info
+			echo $VERSION
+			exit 0
+			;;
+		\?)
+			# Give the user a clue
+			echo $VERSION
+			echo 
+			echo "USAGE: `basename $0` [-p] [-m email_address] [-v] [-l logdir] [-r] [-d dirs]"
+			echo "  -p - 'I am a paranoid admin' mode. Report on entire directory tree"
+			echo "  -m - email address to send report to (or '@' to print to stdout)"
+			echo "  -l - specify directory to store log files in (Default: /tmp)"
+			echo "  -e - special extension to append to output (see INSTALL)"
+			echo "  -v - print version info and exit"
+			echo "  -r - create and mail report even if empty (so you know it ran)"
+			echo "  -d - report on specified directories instead of subdirectories of /"
+			exit 1
+			;;
+	esac
+done
+
+# Clear the arg list
+shift $(($OPTIND - 1))
+
+# Mail program to use
+MAILER=/usr/lib/sendmail
+# Previous output
+PREVIOUS=${OUTPUT:-/tmp}/`basename $0`.previous$EXTENSION
+# Current output
+CURRENT=${OUTPUT:-/tmp}/`basename $0`.current$EXTENSION
+# Deleted allocations
+DELETED=${OUTPUT:-/tmp}/`basename $0`.deleted$EXTENSION
+# Added allocations
+ADDED=${OUTPUT:-/tmp}/`basename $0`.added$EXTENSION
+# Changed allocations
+CHANGED=${OUTPUT:-/tmp}/`basename $0`.changed$EXTENSION
+# scratch area
+WORKFILE=${OUTPUT:-/tmp}/`basename $0`.work$EXTENSION
+# The final report
+REPORT=${OUTPUT:-/tmp}/`basename $0`.report$EXTENSION
+# Default value for '-d'
+if [ -z "$DIRS" ]; then
+	DIRS="/*"
+fi
+
+# do some security conscious cleaning here
+for file in $PREVIOUS $CURRENT $DELETED $ADDED $CHANGED $WORKFILE $REPORT
+do
+	if [ -L $file ] ; then
+		rm -f $file
+	fi
+done
+
+# use the GNU version of 'du' and 'df' if available
+GNU=no
+du -h ${HOME} >/dev/null 2>&1
+if [ "$?" = "0" ] ; then
+	# GNU utilities used here
+	GNU=yes
+fi
+
+# build our 'du' command given the command line args and the results of above
+if [ "$GNU" = "yes" ] ; then
+	DU_ARGS="-h"
+else
+	DU_ARGS="-k"
+fi
+if [ -z "$PARANOID" ] ; then
+	DU_ARGS="-s $DU_ARGS"
+fi
+
+# build our 'df' command based on the above and some more checks
+case `uname -s` in
+	HP-UX)
+		# the "normal" df on HP-UX creates some really UGLY output
+		# so we use their provided Berkely compatible version instead
+		DF=bdf
+		;;
+	*)
+		DF=df
+		;;
+esac
+if [ "$GNU" = "yes" ] ; then
+	DF="$DF -h"
+else
+	DF="$DF -k"
+fi
+
+# create today's listing
+cd /
+# we don't report on /proc if it's around since it's not stable at all
+du $DU_ARGS $DIRS 2>/dev/null | grep -v '	/proc' > $CURRENT
+cat $CURRENT | sort +1 > $CURRENT.sorted$EXTENSION && mv $CURRENT.sorted$EXTENSION $CURRENT
+
+# is there a previous output to compare against?
+if [ -s $PREVIOUS ] ; then
+	# yep, let's start reporting
+	cat $PREVIOUS | awk '{print $2}' > $PREVIOUS.tmp$EXTENSION
+	cat $CURRENT | awk '{print $2}' > $CURRENT.tmp$EXTENSION
+
+	# what directories are gone?
+	comm -23 $PREVIOUS.tmp$EXTENSION $CURRENT.tmp$EXTENSION > $DELETED.tmp$EXTENSION
+	cat $DELETED.tmp$EXTENSION | while read line
+	do
+		# the expression below contains a LITERAL tab
+		eval grep '	${line}$' $PREVIOUS >> $DELETED
+	done
+	rm $DELETED.tmp$EXTENSION >/dev/null 2>&1
+
+	# what directories have been added?
+	comm -13 $PREVIOUS.tmp$EXTENSION $CURRENT.tmp$EXTENSION > $ADDED.tmp$EXTENSION
+	cat $ADDED.tmp$EXTENSION | while read line
+	do
+		# the expression below contains a LITERAL tab
+		eval grep '	${line}$' $CURRENT >> $ADDED
+	done
+	rm $ADDED.tmp$EXTENSION >/dev/null 2>&1
+
+	# the rest of the directories
+	comm -12 $PREVIOUS.tmp$EXTENSION $CURRENT.tmp$EXTENSION >> $CHANGED.tmp$EXTENSION
+	cat $CHANGED.tmp$EXTENSION | while read line
+	do
+		# the expression below contains a LITERAL tab
+		eval grep '	${line}$' $PREVIOUS >> $PREVIOUS.CURRENT$EXTENSION
+		eval grep '	${line}$' $CURRENT >> $CHANGED.CURRENT$EXTENSION
+	done
+	rm $CHANGED.tmp$EXTENSION >/dev/null 2>&1
+	diff $PREVIOUS.CURRENT$EXTENSION $CHANGED.CURRENT$EXTENSION > $WORKFILE
+	rm $PREVIOUS.CURRENT$EXTENSION $CHANGED.CURRENT$EXTENSION >/dev/null 2>&1
+	DIR=
+	cat $WORKFILE | egrep '^<|^>' | while read line
+	do
+		DIR2=`echo $line | awk '{print $3}'`
+		if [ "$DIR" = "$DIR2" ] ; then
+			is=`echo $line | awk '{print $2}'`
+                        if [ ! "$is" = "$was" ] ; then
+                                echo "$DIR is $is was $was" >> $CHANGED
+                        fi
+		else
+			DIR=$DIR2
+			was=`echo $line | awk '{print $2}'`
+		fi
+	done
+
+	# start creating the report
+	if [ -s $CHANGED ] ; then
+		if [ "$GNU" = "yes" ] ; then
+			echo "Changed allocations" >> $REPORT
+		else
+			echo "Changed allocations (Kb)" >> $REPORT
+		fi
+		cat $CHANGED >> $REPORT
+		echo >> $REPORT
+	fi
+	if [ -s $ADDED ] ; then
+		if [ "$GNU" = "yes" ] ; then
+			echo "New allocations" >> $REPORT
+		else
+			echo "New allocations (Kb)" >> $REPORT
+		fi
+		cat $ADDED >> $REPORT
+		echo >> $REPORT
+	fi
+	if [ -s $DELETED ] ; then
+		if [ "$GNU" = "yes" ] ; then
+			echo "Freed allocations" >> $REPORT
+		else
+			echo "Freed allocations (Kb)" >> $REPORT
+		fi
+		cat $DELETED >> $REPORT
+		echo >> $REPORT
+	fi
+fi
+if [ -s $REPORT ] ; then
+	echo >> $REPORT
+	if [ "$GNU" = "yes" ] ; then
+		echo "Total allocations" >> $REPORT
+		$DF >> $REPORT
+	else
+		echo "Total allocations (Kb)" >> $REPORT
+		$DF >> $REPORT
+	fi
+	if [ "$MAILTO" = "@" ]; then
+		# If "-m @" is specified, print report to stdout instead
+		# of mailing
+		cat $REPORT
+	else
+		( echo Subject: $EXTENSION Disk Usage Report
+		  echo From: $HOSTNAME Disk Usage System '<nobody>'
+		  echo To: ${MAILTO:-root}
+		  cat $REPORT
+		  echo .
+		  ) | $MAILER ${MAILTO:-root}
+	fi
+else
+	if [ -z "$REPORT_REGARDLESS" ] ; then
+		:
+	else
+		( echo Subject: $EXTENSION Disk Usage Report
+		  echo From: $HOSTNAME Disk Usage System '<nobody>'
+		  echo To: ${MAILTO:-root}
+		  echo No disk changes to report
+		  echo .
+		) | $MAILER ${MAILTO:-root}
+	fi
+fi
+
+# move the current info for the next run to use
+mv $CURRENT $PREVIOUS >/dev/null 2>&1
+
+# all done, clean up and exit
+for file in $DELETED $ADDED $CHANGED $WORKFILE $CURRENT.tmp$EXTENSION $PREVIOUS.tmp$EXTENSION $REPORT
+do
+	rm $file >/dev/null 2>&1
+done
+
+exit 0

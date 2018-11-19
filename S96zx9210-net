@@ -1,0 +1,52 @@
+#!/bin/sh
+
+if [ ! -f /lib/modules/`uname -r`/updates/dkms/ixgbe.ko ]; then
+        dpkg-reconfigure ixgbe-dkms
+        modprobe ixgbe
+fi
+
+if [ ! -f /lib/modules/`uname -r`/updates/dkms/igb.ko ]; then
+        dpkg-reconfigure igb-dkms
+        modprobe igb
+fi
+
+MAC=`ipmitool -I open lan print | grep "MAC Addre" | cut -c 27-42`
+
+if [ -z $MAC ]; then
+#        echo "fail"
+        exit
+fi
+
+modprobe mlx4_en
+
+grep $MAC /etc/udev/rules.d/71-zx9210-net.rules > /dev/null 2> /dev/null
+
+if [ $? -ne 0 ]; then
+	rm -f /etc/udev/rules.d/70*
+
+        echo "# ZNYX ZX9210 OA port assignments" > /etc/udev/rules.d/71-zx9210-net.rules
+
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"0\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth0\"" >> /etc/udev/rules.d/71-zx9210-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"1\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth1\"" >> /etc/udev/rules.d/71-zx9210-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"2\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth2\"" >> /etc/udev/rules.d/71-zx9210-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"3\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth3\"" >> /etc/udev/rules.d/71-zx9210-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"4\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth4\"" >> /etc/udev/rules.d/71-zx9210-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"5\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth5\"" >> /etc/udev/rules.d/71-zx9210-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"6\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth6\"" >> /etc/udev/rules.d/71-zx9210-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"7\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth7\"" >> /etc/udev/rules.d/71-zx9210-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"a\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth8\"" >> /etc/udev/rules.d/71-zx9210-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"b\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth9\"" >> /etc/udev/rules.d/71-zx9210-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"c\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth10\"" >> /etc/udev/rules.d/71-zx9210-net.rules
+        echo "SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\""$MAC"d\", ATTR{dev_id}==\"0x0\", ATTR{type}==\"1\", KERNEL==\"eth*\", NAME=\"eth11\"" >> /etc/udev/rules.d/71-zx9210-net.rules
+
+	rmmod igb
+	rmmod ixgbe
+	rmmod mlx4_en
+	modprobe igb
+	modprobe ixgbe
+	modprobe mlx4_en
+fi
+
+virsh net-destroy default > /dev/null 2> /dev/null
+virsh net-create /etc/libvirt/qemu/networks/virbr0.xml
+

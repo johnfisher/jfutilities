@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# This script is intended to run on the first deployed use of this copy of OA4.
+
+if [ -f /firstboot ]; then
+	# regen ssh keys
+	rm -f /etc/ssh/ssh_host_*
+	dpkg-reconfigure openssh-server
+
+	rm -f /firstboot	
+fi

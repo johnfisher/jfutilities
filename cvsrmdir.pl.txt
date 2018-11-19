@@ -1,0 +1,75 @@
+#!/usr/bin/perl -w
+#
+# cvsrmdir.pl
+#
+# Project:
+#	for TTS project
+#
+# Contains:
+#	cvs removes a directory tree and all contents
+#	
+#	
+#	
+# To use:	
+#	run cvsrmdir <dirname> in parent directory
+#	CVS must be functional
+# Design:
+#	Runs on linux not tested on windows
+#
+#
+# Version control:
+#	in CVS in zbin project
+#
+#
+#/////////////////////////////////////////////////////////////////#
+
+
+use diagnostics;
+use strict;
+
+use English;
+
+use Sys::Hostname; # might need this later...
+
+# CVS rules on removing files and directories:
+#     Fogel book:"Here is what you can do to remove a file from a module, but remain able to retrieve old revisions: 
+#     Make sure that you have not made any uncommitted modifications to the file. 
+#     If you remove the file without committing your changes, you will of course not be able to retrieve the file as it was 
+#     immediately before you deleted it. 
+#     Remove the file from your working copy of the module. You can for instance use rm. 
+#     Use `cvs remove filename' to tell CVS that you really want to delete the file. 
+#     Use `cvs commit filename' to actually perform the removal of the file from the repository"
+#     
+# removing a directory is just the opposite, first cvs remove, then rm
+
+my $dirname = @ARGV[0]; # get the directory name
+
+my $command = "find ./" . $dirname . "-type f > files.list" ;
+system ( " $command "  ) ;
+$command = "find ./" . $dirname . "-type d > dirs.list" ;
+system ( " $command " ) ;
+
+ 
+
+
+sub GetFiles {
+	# reads list of files from deb subdirectory
+	# returns array of file names
+	# no filtering done here
+
+	opendir DEBDIR , "./deb" or die "build.pm: Couldn't open deb subdirectory!\n";
+	my @files = readdir DEBDIR ;
+	closedir DEBDIR ;
+	return @files ;
+
+
+} # end of sub GetFiles
+
+
+sub RmFiles {
+	unlink "./deb/*" ;
+	if ( GetDebFiles() == 0 ) {
+	} else {
+		die "build:RmDebFiles didn't remove the files -\n";
+	}
+}

@@ -1,0 +1,13 @@
+#!/bin/sh
+
+modprobe virtio_net
+modprobe vhost_net
+
+/usr/sbin/zdogd
+sleep .5
+
+chmod o+rwx /var/run/zdog*
+
+virsh create /etc/network/znyx/8100fab.xml
+virsh create /etc/network/znyx/8100base.xml
+

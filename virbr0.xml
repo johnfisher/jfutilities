@@ -1,0 +1,51 @@
+<network>
+  <name>default</name>
+  <uuid>da888561-41f6-4fdf-83f0-8438a2791381</uuid>
+  <bridge name="virbr0" />
+  <forward/>
+  <ip address="192.168.122.1" netmask="255.255.255.0">
+    <dhcp>
+      <range start="192.168.122.200" end="192.168.122.250" />
+      <host mac="52:54:ff:ff:ff:00" ip="192.168.122.100" />
+      <host mac="52:54:ff:ff:ff:01" ip="192.168.122.101" />
+      <host mac="52:54:ff:ff:ff:02" ip="192.168.122.102" />
+      <host mac="52:54:ff:ff:ff:03" ip="192.168.122.103" />
+      <host mac="52:54:ff:ff:ff:04" ip="192.168.122.104" />
+      <host mac="52:54:ff:ff:ff:05" ip="192.168.122.105" />
+      <host mac="52:54:ff:ff:ff:06" ip="192.168.122.106" />
+      <host mac="52:54:ff:ff:ff:07" ip="192.168.122.107" />
+      <host mac="52:54:ff:ff:ff:08" ip="192.168.122.108" />
+      <host mac="52:54:ff:ff:ff:09" ip="192.168.122.109" />
+      <host mac="52:54:ff:ff:ff:0a" ip="192.168.122.110" />
+      <host mac="52:54:ff:ff:ff:0b" ip="192.168.122.111" />
+      <host mac="52:54:ff:ff:ff:0c" ip="192.168.122.112" />
+      <host mac="52:54:ff:ff:ff:0d" ip="192.168.122.113" />
+      <host mac="52:54:ff:ff:ff:0e" ip="192.168.122.114" />
+      <host mac="52:54:ff:ff:ff:0f" ip="192.168.122.115" />
+      <host mac="52:54:ff:ff:ff:10" ip="192.168.122.116" />
+      <host mac="52:54:ff:ff:ff:11" ip="192.168.122.117" />
+      <host mac="52:54:ff:ff:ff:12" ip="192.168.122.118" />
+      <host mac="52:54:ff:ff:ff:13" ip="192.168.122.119" />
+      <host mac="52:54:ff:ff:ff:14" ip="192.168.122.120" />
+      <host mac="52:54:ff:ff:ff:15" ip="192.168.122.121" />
+      <host mac="52:54:ff:ff:ff:16" ip="192.168.122.122" />
+      <host mac="52:54:ff:ff:ff:17" ip="192.168.122.123" />
+      <host mac="52:54:ff:ff:ff:18" ip="192.168.122.124" />
+      <host mac="52:54:ff:ff:ff:19" ip="192.168.122.125" />
+      <host mac="52:54:ff:ff:ff:1a" ip="192.168.122.126" />
+      <host mac="52:54:ff:ff:ff:1b" ip="192.168.122.127" />
+      <host mac="52:54:ff:ff:ff:1c" ip="192.168.122.128" />
+      <host mac="52:54:ff:ff:ff:1d" ip="192.168.122.129" />
+      <host mac="52:54:ff:ff:ff:1e" ip="192.168.122.130" />
+      <host mac="52:54:ff:ff:ff:1f" ip="192.168.122.131" />
+      <host mac="52:54:ff:ff:ff:20" ip="192.168.122.132" />
+      <host mac="52:54:ff:ff:ff:21" ip="192.168.122.133" />
+      <host mac="52:54:ff:ff:ff:22" ip="192.168.122.134" />
+      <host mac="52:54:ff:ff:ff:23" ip="192.168.122.135" />
+      <host mac="52:54:ff:ff:ff:24" ip="192.168.122.136" />
+      <host mac="52:54:ff:ff:ff:25" ip="192.168.122.137" />
+      <host mac="52:54:ff:ff:ff:26" ip="192.168.122.138" />
+      <host mac="52:54:ff:ff:ff:27" ip="192.168.122.139" />
+    </dhcp>
+  </ip>
+</network>
